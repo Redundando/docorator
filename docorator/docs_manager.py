@@ -1,5 +1,7 @@
 import io
-from typing import Optional
+import threading
+import weakref
+from typing import Optional, Any, Tuple, Union
 
 import mammoth
 import markdown
@@ -29,6 +31,16 @@ class Docorator(JSONCache):
         if not hasattr(self, "document_id"):
             self.document_id = None
 
+        # Thread-related attributes
+        self._load_thread: Optional[threading.Thread] = None
+        self._save_thread: Optional[threading.Thread] = None
+        self._load_result: Optional[Tuple[Any, Optional[Exception]]] = None
+        self._save_result: Optional[Tuple[bool, Optional[Exception]]] = None
+        self._thread_lock = threading.Lock()
+
+        self.load()
+        weakref.finalize(self, self.close)
+
     def __str__(self):
         return f"{self.document_name} ({self.url})"
 
@@ -41,7 +53,6 @@ class Docorator(JSONCache):
             return f"https://docs.google.com/{self.document_id}"
         return None
 
-    @Logger()
     def _find_document(self) -> bool:
         query = f"name = '{self.document_name}' and mimeType = 'application/vnd.google-apps.document'"
         results = self.drive_service.files().list(q=query, fields="files(id, name)").execute()
@@ -51,10 +62,10 @@ class Docorator(JSONCache):
             return False
 
         self.document_id = files[0]['id']
-        self.json_cache_save()
+
+        Logger.note(f"Document found: {self.url}")
         return True
 
-    @Logger()
     def _create_document(self) -> None:
         try:
             file_metadata = {
@@ -89,11 +100,10 @@ class Docorator(JSONCache):
                 except Exception as e:
                     Logger.note(f"Warning: Failed to share document with {self.email}: {str(e)}")
 
-            self.json_cache_save()
+            Logger.note("Document created")
         except Exception as e:
             raise DocumentCreationError(f"Failed to create document: {str(e)}")
 
-    @Logger()
     def _export_to_docx(self) -> DocxDocument:
         try:
             if not self.document_id:
@@ -116,9 +126,7 @@ class Docorator(JSONCache):
         except Exception as e:
             raise DocumentNotFoundError(f"Failed to export document to DOCX: {str(e)}")
 
-    @Cached()
-    @Logger()
-    def load(self) -> DocxDocument:
+    def _load_implementation(self) -> DocxDocument:
         if self.document_id:
             try:
                 return self._export_to_docx()
@@ -133,15 +141,54 @@ class Docorator(JSONCache):
 
     @Cached()
     @Logger()
+    def load(self) -> None:
+        with self._thread_lock:
+            if self._load_thread and self._load_thread.is_alive():
+                return
+
+            self._load_result = None
+
+            def thread_target():
+                result = None
+                exception = None
+                try:
+                    result = self._load_implementation()
+                except Exception as e:
+                    exception = e
+
+                with self._thread_lock:
+                    self._load_result = (result, exception)
+
+            self._load_thread = threading.Thread(target=thread_target)
+            self._load_thread.daemon = True
+            self._load_thread.start()
+
+    @Logger()
+    def wait_for_load(self) -> DocxDocument:
+        if not self._load_thread or not self._load_thread.is_alive() and self._load_result is None:
+            self.load()
+
+        if self._load_thread:
+            self._load_thread.join()
+
+        if self._load_result:
+            result, exception = self._load_result
+            if exception:
+                raise exception
+            return result
+
+        return self._load_implementation()
+
+    @Cached()
+    @Logger()
     def as_markdown(self):
         buffer = io.BytesIO()
-        doc = self.load()
+        doc = self.wait_for_load()
         doc.save(buffer)
         buffer.seek(0)
         result = mammoth.convert_to_markdown(buffer)
         return result.value
 
-    @Logger()
     def _convert_markdown_to_html(self, md: str = ""):
         html = markdown.markdown(
             md,
@@ -165,13 +212,11 @@ class Docorator(JSONCache):
                 """
         return full_html
 
-    @Logger()
     def _convert_markdown_to_docx(self, md: str = ""):
         docx_bytes = html2docx(self._convert_markdown_to_html(md=md), title=self.document_name)
         return Document(docx_bytes)
 
-    @Logger()
-    def save(self, document: str | DocxDocument = "") -> bool:
+    def _save_implementation(self, document: Union[str, DocxDocument] = "") -> bool:
         if isinstance(document, str):
             document = self._convert_markdown_to_docx(document)
         try:
@@ -192,3 +237,43 @@ class Docorator(JSONCache):
             return True
         except Exception as e:
             raise DocumentSaveError(f"Failed to save document: {str(e)}")
+
+    @Logger()
+    def save(self, document: Union[str, DocxDocument] = "") -> None:
+        with self._thread_lock:
+            if self._save_thread and self._save_thread.is_alive():
+                return
+
+            self._save_result = None
+
+            def thread_target():
+                result = False
+                exception = None
+                try:
+                    result = self._save_implementation(document)
+                except Exception as e:
+                    exception = e
+
+                with self._thread_lock:
+                    self._save_result = (result, exception)
+
+            # Start the thread
+            self._save_thread = threading.Thread(target=thread_target)
+            self._save_thread.daemon = True
+            self._save_thread.start()
+
+    @Logger()
+    def wait_for_save(self) -> bool:
+        if self._save_thread:
+            self._save_thread.join()
+
+        if self._save_result:
+            result, exception = self._save_result
+            if exception:
+                raise exception
+            return result
+
+        return False
+
+    def close(self):
+        self.wait_for_save()
