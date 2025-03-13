@@ -12,3 +12,6 @@ class DocumentCreationError(DocoratorError):
 
 class DocumentSaveError(DocoratorError):
     pass
+
+class ConversionError(DocoratorError):
+    pass

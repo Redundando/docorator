@@ -1,21 +1,23 @@
 from docorator import Docorator
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 
+from docx import Document
 
 def main():
     # Initialize with your service account key file and email for sharing
     key_path = "service-account-key.json"
     email = "klojarve@audible.de"  # Email to share documents with
-    doc_manager = Docorator(key_path, email)
-
+    doco = Docorator(keyfile_path="service-account-key.json", email="klojarve@audible.de", document_name="Example Document")
+    doco.load()
     # Get or create a document named "Example Document"
-    document = doc_manager.get_document("Example Document")
+    #document = doc_manager.get_document("Example Document")
 
-    print(doc_manager.convert_docx_to_markdown(document))
-    return
+    print(doco.url)
+
+    document = Document()
 
     # Modify the document
-    document.add_heading("Hello from Docorator", 0)
+    document.add_heading("Hello from Docorator!!!", 0)
 
     paragraph = document.add_paragraph("This document was created or modified using ")
     paragraph.add_run("Docorator").bold = True
@@ -27,7 +29,7 @@ def main():
     document.add_paragraph("• Save them back to Google Drive")
 
     # Save the document back to Google Docs
-    success = doc_manager.save_document("Example Document", document)
+    success = doco.save(document)
 
     if success:
         print("Document successfully saved!")

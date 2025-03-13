@@ -13,7 +13,6 @@ class GoogleAuth:
         self.drive_service = None
         self._authenticate()
 
-    @Logger()
     def _authenticate(self) -> None:
         try:
             self.credentials = service_account.Credentials.from_service_account_file(
@@ -26,13 +25,11 @@ class GoogleAuth:
         except Exception as e:
             raise AuthenticationError(f"Failed to authenticate: {str(e)}")
 
-    @Logger()
     def get_docs_service(self) -> Any:
         if not self.docs_service:
             self._authenticate()
         return self.docs_service
 
-    @Logger()
     def get_drive_service(self) -> Any:
         if not self.drive_service:
             self._authenticate()
