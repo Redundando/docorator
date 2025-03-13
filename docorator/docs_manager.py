@@ -1,17 +1,22 @@
-from typing import Optional
 import io
-from googleapiclient.http import MediaIoBaseUpload, MediaIoBaseDownload
+from typing import Optional
+
+import mammoth
+import markdown
+from cacherator import JSONCache, Cached
 from docx import Document
 from docx.document import Document as DocxDocument
+from googleapiclient.http import MediaIoBaseUpload, MediaIoBaseDownload
+from html2docx import html2docx
 from logorator import Logger
-from cacherator import JSONCache, Cached
+
 from .auth import GoogleAuth
 from .exceptions import DocumentNotFoundError, DocumentCreationError, DocumentSaveError
 
 
 class Docorator(JSONCache):
     def __init__(self, keyfile_path: str, email: Optional[str], document_name: str, clear_cache: bool = True):
-        super().__init__(data_id=f"{document_name}", directory="data/docorator",clear_cache=clear_cache)
+        super().__init__(data_id=f"{document_name}", directory="data/docorator", clear_cache=clear_cache)
 
         self.keyfile_path = keyfile_path
         self.email = email
@@ -126,11 +131,52 @@ class Docorator(JSONCache):
         self._create_document()
         return Document()
 
+    @Cached()
     @Logger()
-    def save(self, docx_document: DocxDocument) -> bool:
+    def as_markdown(self):
+        buffer = io.BytesIO()
+        doc = self.load()
+        doc.save(buffer)
+        buffer.seek(0)
+        result = mammoth.convert_to_markdown(buffer)
+        return result.value
+
+    @Logger()
+    def _convert_markdown_to_html(self, md: str = ""):
+        html = markdown.markdown(
+            md,
+            extensions=[
+                'markdown.extensions.tables',
+                'markdown.extensions.fenced_code',
+                'markdown.extensions.codehilite',
+                'markdown.extensions.nl2br',
+                'markdown.extensions.smarty',
+                'markdown.extensions.toc'
+            ]
+        )
+
+        full_html = f"""
+                <!DOCTYPE html>
+                <html>
+                <body>
+                    {html}
+                </body>
+                </html>
+                """
+        return full_html
+
+    @Logger()
+    def _convert_markdown_to_docx(self, md: str = ""):
+        docx_bytes = html2docx(self._convert_markdown_to_html(md=md), title=self.document_name)
+        return Document(docx_bytes)
+
+    @Logger()
+    def save(self, document: str | DocxDocument = "") -> bool:
+        if isinstance(document, str):
+            document = self._convert_markdown_to_docx(document)
         try:
             file_buffer = io.BytesIO()
-            docx_document.save(file_buffer)
+            document.save(file_buffer)
             file_buffer.seek(0)
 
             media = MediaIoBaseUpload(

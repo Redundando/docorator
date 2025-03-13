@@ -12,29 +12,12 @@ def main():
     # Get or create a document named "Example Document"
     #document = doc_manager.get_document("Example Document")
 
-    print(doco.url)
+    print(doco.as_markdown())
 
-    document = Document()
 
-    # Modify the document
-    document.add_heading("Hello from Docorator!!!", 0)
-
-    paragraph = document.add_paragraph("This document was created or modified using ")
-    paragraph.add_run("Docorator").bold = True
-    paragraph.add_run(", a Python package for Google Docs integration.")
-
-    paragraph = document.add_paragraph("It allows you to:")
-    document.add_paragraph("• Find or create Google Docs")
-    document.add_paragraph("• Modify them using python-docx")
-    document.add_paragraph("• Save them back to Google Drive")
 
     # Save the document back to Google Docs
-    success = doco.save(document)
-
-    if success:
-        print("Document successfully saved!")
-    else:
-        print("Failed to save document.")
+    doco.save("# This is a headline\n\n## Part 1\n\nHello World\\!")
 
 
 if __name__ == "__main__":

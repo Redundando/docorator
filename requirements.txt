@@ -5,3 +5,5 @@ typing-extensions
 google~=3.0.0
 logorator
 cacherator
+mammoth
+html2docx
