@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "docorator"
+version = "0.1.0"
+description = "Google Docs management library with Markdown support and persistent caching"
+readme = "README.md"
+authors = [
+    {name = "Arved Klöhn", email = "arved.kloehn@gmail.com"}
+]
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Developers",
+    "Topic :: Office/Business :: Office Suites",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+requires-python = ">=3.7"
+dependencies = [
+    "google-auth>=2.16.0",
+    "google-api-python-client>=2.70.0",
+    "python-docx>=0.8.11",
+    "typing-extensions",
+    "google~=3.0.0",
+    "logorator",
+    "cacherator",
+    "mammoth~=1.9.0",
+    "html2docx~=1.6.0",
+    "Markdown~=3.7",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/Redundando/docorator"
+"Bug Tracker" = "https://github.com/Redundando/docorator/issues"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "isort>=5.0.0",
+    "flake8>=6.0.0",
+]
+
+[tool.setuptools]
+packages = ["docorator"]
