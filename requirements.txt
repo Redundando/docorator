@@ -1,0 +1,5 @@
+google-auth>=2.16.0
+google-api-python-client>=2.70.0
+python-docx>=0.8.11
+typing-extensions
+google~=3.0.0
