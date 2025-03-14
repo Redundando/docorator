@@ -50,7 +50,7 @@ class Docorator(JSONCache):
     @property
     def url(self):
         if self.document_id:
-            return f"https://docs.google.com/{self.document_id}"
+            return f"https://docs.google.com/document/d/{self.document_id}/edit"
         return None
 
     def _find_document(self) -> bool:
@@ -66,7 +66,6 @@ class Docorator(JSONCache):
         Logger.note(f"Document found: {self.url}")
         return True
 
-    @Logger()
     def _share_with_mail(self):
         if self.email:
             anyone_permission = {
