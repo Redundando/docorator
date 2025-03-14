@@ -66,15 +66,9 @@ class Docorator(JSONCache):
         Logger.note(f"Document found: {self.url}")
         return True
 
-    def _create_document(self) -> None:
-        try:
-            file_metadata = {
-                'name'    : self.document_name,
-                'mimeType': 'application/vnd.google-apps.document'
-            }
-            document = self.drive_service.files().create(body=file_metadata).execute()
-            self.document_id = document['id']
-
+    @Logger()
+    def _share_with_mail(self):
+        if self.email:
             anyone_permission = {
                 'type': 'anyone',
                 'role': 'writer'
@@ -84,21 +78,31 @@ class Docorator(JSONCache):
                 body=anyone_permission
             ).execute()
 
-            if self.email:
-                try:
-                    email_permission = {
+            try:
+                email_permission = {
                         'type'        : 'user',
                         'role'        : 'writer',
                         'emailAddress': self.email
-                    }
-                    self.drive_service.permissions().create(
+                }
+                self.drive_service.permissions().create(
                         fileId=self.document_id,
                         body=email_permission,
                         sendNotificationEmail=False,
                         fields='id'
-                    ).execute()
-                except Exception as e:
-                    Logger.note(f"Warning: Failed to share document with {self.email}: {str(e)}")
+                ).execute()
+            except Exception as e:
+                Logger.note(f"Warning: Failed to share document with {self.email}: {str(e)}")
+
+    def _create_document(self) -> None:
+        try:
+            file_metadata = {
+                'name'    : self.document_name,
+                'mimeType': 'application/vnd.google-apps.document'
+            }
+            document = self.drive_service.files().create(body=file_metadata).execute()
+            self.document_id = document['id']
+
+            self._share_with_mail()
 
             Logger.note("Document created")
         except Exception as e:
@@ -234,6 +238,7 @@ class Docorator(JSONCache):
                 fileId=self.document_id,
                 media_body=media
             ).execute()
+            self._share_with_mail()
             return True
         except Exception as e:
             raise DocumentSaveError(f"Failed to save document: {str(e)}")
