@@ -2,6 +2,7 @@ import io
 import threading
 import weakref
 from typing import Optional, Any, Tuple, Union
+from venv import logger
 
 import mammoth
 import markdown
@@ -142,7 +143,6 @@ class Docorator(JSONCache):
         self._create_document()
         return Document()
 
-    @Cached()
     @Logger()
     def load(self) -> None:
         with self._thread_lock:
@@ -245,7 +245,11 @@ class Docorator(JSONCache):
         docx_bytes = html2docx(self._convert_markdown_to_html(md=md), title=self.document_name)
         return Document(docx_bytes)
 
+    @Logger()
     def _save_implementation(self, document: Union[str, DocxDocument] = "") -> bool:
+        if self.document_id is None:
+            Logger.note("No Document ID was provided")
+            return False
         if isinstance(document, str):
             document = self._convert_markdown_to_docx(document)
         try:

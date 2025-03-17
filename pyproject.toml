@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "docorator"
-version = "0.1.2"
+version = "0.1.3"
 description = "Google Docs management library with Markdown support and persistent caching"
 readme = "README.md"
 authors = [
