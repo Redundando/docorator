@@ -14,7 +14,7 @@ from logorator import Logger
 
 from .auth import GoogleAuth
 from .exceptions import DocumentNotFoundError, DocumentCreationError, DocumentSaveError
-
+import re
 
 class Docorator(JSONCache):
     def __init__(self, keyfile_path: str, email: Optional[str], document_name: str, clear_cache: bool = True):
@@ -190,7 +190,18 @@ class Docorator(JSONCache):
         doc.save(buffer)
         buffer.seek(0)
         result = mammoth.convert_to_markdown(buffer)
-        return result.value
+
+        def replace_base64_images_with_alt_tag(text: str) -> str:
+            # Capture the alt text inside ![Alt text]... then match a data:image/... pattern
+            pattern = r'!\[([^\]]*)\]\(data:image\/[^)]+\)'
+            # The replacement uses the captured alt text group (\1) in a bracketed [Image: ...] format
+            replacement = r'[Image: \1]'
+
+            return re.sub(pattern, replacement, text)
+
+        markdown_text = replace_base64_images_with_alt_tag(result.value)
+
+        return markdown_text
 
     def _convert_markdown_to_html(self, md: str = ""):
         html = markdown.markdown(
@@ -204,7 +215,7 @@ class Docorator(JSONCache):
                 'markdown.extensions.toc'
             ]
         )
-
+        html = self._replace_images_with_alt_text(html)
         full_html = f"""
                 <!DOCTYPE html>
                 <html>
@@ -214,6 +225,21 @@ class Docorator(JSONCache):
                 </html>
                 """
         return full_html
+
+    def _replace_images_with_alt_text(self, html: str) -> str:
+        def replacer(match):
+            alt_text = "[Image]"
+            if match.group(1):
+                alt_text = f"[Image: {match.group(1)}]"
+            return f"<span class='image-placeholder'>{alt_text}</span>"
+
+        # Pattern to match img tags and extract alt attribute
+        img_pattern = r'<img.*?alt=["\'](.*?)["\'].*?>'
+        html_with_alts = re.sub(img_pattern, replacer, html)
+
+        # Handle imgs without alt attribute
+        img_pattern_no_alt = r'<img.*?>'
+        return re.sub(img_pattern_no_alt, "<span class='image-placeholder'>[Image]</span>", html_with_alts)
 
     def _convert_markdown_to_docx(self, md: str = ""):
         docx_bytes = html2docx(self._convert_markdown_to_html(md=md), title=self.document_name)
