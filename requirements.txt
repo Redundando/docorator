@@ -1,10 +1,10 @@
 google-auth>=2.16.0
 google-api-python-client>=2.70.0
-python-docx>=0.8.11
 typing-extensions
 google~=3.0.0
-logorator
-cacherator
-mammoth~=1.9.0
+logorator~=1.0.6
+cacherator~=1.0.9
 html2docx~=1.6.0
 Markdown~=3.7
+html2text~=2024.2.26
+protobuf~=5.29.3
