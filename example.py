@@ -9,7 +9,7 @@ async def main():
     #document = await doc.get_document()
     markdown_content = await doc.export_as_markdown()
     print(markdown_content)
-    markdown_content = "# Title\nThis is a test with an ![image](http://example.com/img.jpg)"
+    markdown_content = "# Title\nThis is a test with [a link](https://www.example.com)"
     success = await doc.update_from_markdown(markdown_content)
     print(success)
 

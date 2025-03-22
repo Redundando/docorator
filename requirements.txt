@@ -3,7 +3,11 @@ google-api-python-client>=2.0.0
 html2text>=2020.1.16
 markdown>=3.3.0
 html2docx>=1.0.0
-cacherator
-logorator
+cacherator~=1.0.9
+logorator~=1.0.7
 python-slugify
-asyncio
+asyncio~=3.4.3
+python-docx~=1.1.2
+htmldocx~=0.0.6
+google~=3.0.0
+protobuf~=5.29.3

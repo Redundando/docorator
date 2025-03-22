@@ -4,13 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "docorator"
-version = "0.1.5"
+version = "0.1.6"
 description = "A Python library for interacting with Google Docs API with caching and logging"
 readme = "README.md"
 authors = [
     {name = "Arved Klöhn", email = "arved.kloehn@gmail.com"},
 ]
-license = {text = "MIT"}
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -22,7 +21,9 @@ dependencies = [
     "google-api-python-client",
     "html2text",
     "markdown",
-    "html2docx",
+    "htmldocx",
+    "python-docx",
+    "bs4",
     "cacherator",
     "logorator",
     "asyncio",
@@ -31,3 +32,8 @@ dependencies = [
 [project.urls]
 "Homepage" = "https://github.com/Redundando/docorator"
 "Bug Tracker" = "https://github.com/Redundando/docorator/issues"
+
+[tool.setuptools]
+packages = [
+    "docorator",
+]

@@ -1,27 +1,40 @@
-from typing import Tuple, Optional
+from typing import Tuple
 from io import BytesIO
 import re
 import markdown
-from html2docx import html2docx
-
+from docx import Document
+from htmldocx import HtmlToDocx
 
 def convert_markdown_to_docx(markdown_text: str, title: str = "Document") -> Tuple[BytesIO, int]:
+    """
+    Converts a Markdown string to a DOCX file in memory using htmldocx.
+    Returns a tuple of (BytesIO, file_size_in_bytes).
+    """
+
+    # 1) Convert Markdown to HTML
     html_content = markdown.markdown(markdown_text)
 
+    # 2) Optional: Replace <img> tags with alt text
+    #    (htmldocx *does* handle images, but if you only want placeholders, do this)
     image_pattern = r'<img[^>]*alt="([^"]*)"[^>]*>'
     html_content = re.sub(image_pattern, lambda m: f'[Image: {m.group(1)}]', html_content)
 
-    # html2docx already returns a BytesIO object
-    docx_file = html2docx(html_content, title=title)
+    # 3) Create a new blank Document
+    document = Document()
 
-    # Get current position
-    current_pos = docx_file.tell()
+    # Optionally, set the doc's internal title property
+    document.core_properties.title = title
 
-    # Go to end to get size
-    docx_file.seek(0, 2)
+    # 4) Convert the HTML and add it into the Document
+    parser = HtmlToDocx()
+    parser.add_html_to_document(html_content, document)
+
+    # 5) Write the doc to an in-memory BytesIO buffer
+    docx_file = BytesIO()
+    document.save(docx_file)
+
+    # Get the file size
     file_size = docx_file.tell()
-
-    # Reset position
-    docx_file.seek(0)
+    docx_file.seek(0)  # Rewind for reading downstream
 
     return docx_file, file_size
